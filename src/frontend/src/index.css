@@ -1,0 +1,104 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 1rem;
+    /* Dark navy theme */
+    --background: 0.12 0.02 250;
+    --foreground: 0.96 0.015 250;
+    --card: 0.16 0.025 250;
+    --card-foreground: 0.96 0.015 250;
+    --popover: 0.18 0.025 250;
+    --popover-foreground: 0.96 0.015 250;
+    /* Cyan primary matching logo #2FF6FF */
+    --primary: 0.82 0.18 195;
+    --primary-foreground: 0.08 0.02 195;
+    /* Magenta/purple secondary matching logo #8A4CFF / #FF4AF2 */
+    --secondary: 0.62 0.28 300;
+    --secondary-foreground: 0.98 0 0;
+    --muted: 0.2 0.02 250;
+    --muted-foreground: 0.65 0.025 250;
+    --accent: 0.62 0.28 300;
+    --accent-foreground: 0.98 0 0;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+    --border: 0.96 0 0 / 10%;
+    --input: 0.96 0 0 / 12%;
+    --ring: 0.82 0.18 195;
+    --chart-1: 0.82 0.18 195;
+    --chart-2: 0.62 0.28 300;
+    --chart-3: 0.65 0.28 330;
+    --chart-4: 0.828 0.189 84.429;
+    --chart-5: 0.769 0.188 70.08;
+    --sidebar: 0.14 0.025 250;
+    --sidebar-foreground: 0.96 0.015 250;
+    --sidebar-primary: 0.82 0.18 195;
+    --sidebar-primary-foreground: 0.08 0.02 195;
+    --sidebar-accent: 0.2 0.02 250;
+    --sidebar-accent-foreground: 0.96 0.015 250;
+    --sidebar-border: 0.96 0 0 / 10%;
+    --sidebar-ring: 0.82 0.18 195;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", sans-serif;
+  }
+}
+
+/* Gradient button — cyan → purple → magenta (logo colours) */
+.btn-gradient {
+  background: linear-gradient(
+    90deg,
+    oklch(0.82 0.18 195),
+    oklch(0.62 0.28 300),
+    oklch(0.65 0.28 330)
+  );
+}
+.btn-gradient:hover {
+  background: linear-gradient(
+    90deg,
+    oklch(0.87 0.18 195),
+    oklch(0.67 0.28 300),
+    oklch(0.7 0.28 330)
+  );
+  box-shadow: 0 0 24px oklch(0.82 0.18 195 / 50%);
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+/* Neon glow effects */
+.glow-cyan {
+  box-shadow: 0 0 30px oklch(0.82 0.18 195 / 40%), 0 0 60px
+    oklch(0.82 0.18 195 / 20%);
+}
+.glow-purple {
+  box-shadow: 0 0 30px oklch(0.62 0.28 300 / 40%), 0 0 60px
+    oklch(0.65 0.28 330 / 20%);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: oklch(0.12 0.02 250);
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.35 0.05 250);
+  border-radius: 3px;
+}
