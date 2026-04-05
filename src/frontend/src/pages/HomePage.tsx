@@ -4,9 +4,6 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, Download, Sparkles, Star, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
-import heroPreview1 from "../../public/assets/generated/template-preview-1.dim_800x500.jpg";
-import heroPreview2 from "../../public/assets/generated/template-preview-2.dim_800x500.jpg";
-import heroPreview3 from "../../public/assets/generated/template-preview-3.dim_800x500.jpg";
 import FreeTemplateCard from "../components/FreeTemplateCard";
 import MyOrdersModal from "../components/MyOrdersModal";
 import TemplateCard from "../components/TemplateCard";
@@ -202,157 +199,88 @@ export default function HomePage() {
         />
 
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="max-w-3xl"
+          >
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6 text-xs font-semibold"
+              style={{
+                background: "rgba(47,246,255,0.12)",
+                border: "1px solid rgba(47,246,255,0.35)",
+                color: "#2FF6FF",
+              }}
             >
-              <div
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6 text-xs font-semibold"
+              <Sparkles className="w-3 h-3" /> Premium Website Templates
+            </div>
+            <h1 className="text-5xl lg:text-7xl font-black leading-[1.05] mb-6">
+              Build{" "}
+              <span
                 style={{
-                  background: "rgba(47,246,255,0.12)",
-                  border: "1px solid rgba(47,246,255,0.35)",
-                  color: "#2FF6FF",
+                  background:
+                    "linear-gradient(90deg, #2FF6FF, #3F7BFF, #8A4CFF, #FF4AF2)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
                 }}
               >
-                <Sparkles className="w-3 h-3" /> Premium Website Templates
-              </div>
-              <h1 className="text-5xl lg:text-7xl font-black leading-[1.05] mb-6">
-                Build{" "}
-                <span
-                  style={{
-                    background:
-                      "linear-gradient(90deg, #2FF6FF, #3F7BFF, #8A4CFF, #FF4AF2)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  Stunning
-                </span>{" "}
-                Websites Faster
-              </h1>
-              <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg">
-                Ready-to-use, modern HTML templates for businesses,
-                entrepreneurs, and developers. Start from ₹500.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/templates" data-ocid="hero.browse.button">
-                  <Button
-                    size="lg"
-                    className="btn-gradient text-white border-0 font-bold px-8 h-12 rounded-full"
-                  >
-                    Browse Templates <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-                <Link to="/free" data-ocid="hero.free.button">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-white/15 hover:border-white/30 rounded-full h-12 px-8"
-                  >
-                    <Zap
-                      className="w-5 h-5 mr-2"
-                      style={{ color: "#2FF6FF" }}
-                    />{" "}
-                    Get Free Templates
-                  </Button>
-                </Link>
-              </div>
-              {/* Check download status button */}
-              <div className="mt-6">
+                Stunning
+              </span>{" "}
+              Websites Faster
+            </h1>
+            <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg">
+              Ready-to-use, modern HTML templates for businesses, entrepreneurs,
+              and developers. Start from ₹500.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link to="/templates" data-ocid="hero.browse.button">
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="px-0 text-sm text-muted-foreground hover:text-white gap-2"
-                  onClick={() => setShowOrdersModal(true)}
-                  data-ocid="hero.check_download.button"
+                  size="lg"
+                  className="btn-gradient text-white border-0 font-bold px-8 h-12 rounded-full"
                 >
-                  <Download className="w-4 h-4" style={{ color: "#2FF6FF" }} />
-                  Already purchased? Check your download status
+                  Browse Templates <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-              </div>
-              <div className="flex items-center gap-6 mt-8">
-                <div className="text-center">
-                  <p className="text-2xl font-black">₹500+</p>
-                  <p className="text-xs text-muted-foreground">
-                    Starting Price
-                  </p>
-                </div>
-                <div
-                  className="w-px h-10"
-                  style={{ background: "rgba(255,255,255,0.1)" }}
-                />
-                <div className="text-center">
-                  <p className="text-2xl font-black">100%</p>
-                  <p className="text-xs text-muted-foreground">Responsive</p>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="relative hidden lg:block"
-            >
-              <div className="relative h-[500px]">
-                <motion.div
-                  animate={{ y: [0, -12, 0] }}
-                  transition={{
-                    duration: 4,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute top-0 right-0 w-72 rounded-2xl overflow-hidden shadow-2xl glow-purple"
-                  style={{ transform: "rotate(3deg)" }}
+              </Link>
+              <Link to="/free" data-ocid="hero.free.button">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/15 hover:border-white/30 rounded-full h-12 px-8"
                 >
-                  <img
-                    src={heroPreview1}
-                    alt="Template preview"
-                    className="w-full"
-                  />
-                </motion.div>
-                <motion.div
-                  animate={{ y: [0, 10, 0] }}
-                  transition={{
-                    duration: 4.5,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: "easeInOut",
-                    delay: 0.5,
-                  }}
-                  className="absolute top-16 left-0 w-64 rounded-2xl overflow-hidden shadow-2xl glow-cyan"
-                  style={{ transform: "rotate(-4deg)" }}
-                >
-                  <img
-                    src={heroPreview2}
-                    alt="Template preview"
-                    className="w-full"
-                  />
-                </motion.div>
-                <motion.div
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{
-                    duration: 5,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: "easeInOut",
-                    delay: 1,
-                  }}
-                  className="absolute bottom-0 right-8 w-60 rounded-2xl overflow-hidden shadow-2xl"
-                  style={{
-                    transform: "rotate(2deg)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                  }}
-                >
-                  <img
-                    src={heroPreview3}
-                    alt="Template preview"
-                    className="w-full"
-                  />
-                </motion.div>
+                  <Zap className="w-5 h-5 mr-2" style={{ color: "#2FF6FF" }} />{" "}
+                  Get Free Templates
+                </Button>
+              </Link>
+            </div>
+            {/* Check download status button */}
+            <div className="mt-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="px-0 text-sm text-muted-foreground hover:text-white gap-2"
+                onClick={() => setShowOrdersModal(true)}
+                data-ocid="hero.check_download.button"
+              >
+                <Download className="w-4 h-4" style={{ color: "#2FF6FF" }} />
+                Already purchased? Check your download status
+              </Button>
+            </div>
+            <div className="flex items-center gap-6 mt-8">
+              <div className="text-center">
+                <p className="text-2xl font-black">₹500+</p>
+                <p className="text-xs text-muted-foreground">Starting Price</p>
               </div>
-            </motion.div>
-          </div>
+              <div
+                className="w-px h-10"
+                style={{ background: "rgba(255,255,255,0.1)" }}
+              />
+              <div className="text-center">
+                <p className="text-2xl font-black">100%</p>
+                <p className="text-xs text-muted-foreground">Responsive</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
