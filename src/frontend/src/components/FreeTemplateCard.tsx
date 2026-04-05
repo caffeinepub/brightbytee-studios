@@ -109,7 +109,7 @@ export default function FreeTemplateCard({
         transactionRef: "free",
       });
       if (blobId) {
-        await downloadBlob(blobId, `${template.name}.html`);
+        await downloadBlob(blobId, template.name);
         toast.success("Download started!");
       } else {
         toast.error("File not available.");

@@ -122,8 +122,8 @@ export default function MyOrdersModal({
         return;
       }
       const safeName = order.templateId
-        ? `template-${order.templateId}.zip`
-        : "template.zip";
+        ? `template-${order.templateId}`
+        : "template";
       await downloadBlob(fileId, safeName);
       toast.success("Download started!");
     } catch {
