@@ -2,6 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Announcement,
   BlockedBuyer,
+  CountryCount,
+  Order,
+  PaymentSummary,
   PolicyDocument,
   Review,
   Template,
@@ -371,6 +374,157 @@ export function useDeleteReview() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["allReviews"] });
       queryClient.invalidateQueries({ queryKey: ["reviews"] });
+    },
+  });
+}
+
+// ─── New order + analytics hooks ────────────────────────────────────────────
+
+export function useSubmitOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      templateId: bigint;
+      transactionRef: string;
+      screenshotBlobId: string;
+      buyerName: string;
+      buyerEmail: string;
+      buyerMobile: string;
+      buyerAddress: string;
+      businessDetails: string;
+      accountRecovery: boolean;
+      templateUseCase: string;
+    }) => {
+      if (!actor) throw new Error("No actor");
+      return actor.submitOrder(
+        data.templateId,
+        data.transactionRef,
+        data.screenshotBlobId,
+        data.buyerName,
+        data.buyerEmail,
+        data.buyerMobile,
+        data.buyerAddress,
+        data.businessDetails,
+        data.accountRecovery,
+        data.templateUseCase,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+}
+
+export function useGetOrders() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Order[]>({
+    queryKey: ["orders"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getOrders();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useApproveOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderId: bigint) => {
+      if (!actor) throw new Error("No actor");
+      return actor.approveOrder(orderId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+}
+
+export function useRejectOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderId: bigint) => {
+      if (!actor) throw new Error("No actor");
+      return actor.rejectOrder(orderId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+}
+
+export function useGetApprovedOrderFileId() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: async (orderId: bigint) => {
+      if (!actor) throw new Error("No actor");
+      return actor.getApprovedOrderFileId(orderId);
+    },
+  });
+}
+
+export function useGetPageVisitCount() {
+  const { actor, isFetching } = useActor();
+  return useQuery<bigint>({
+    queryKey: ["pageVisitCount"],
+    queryFn: async () => {
+      if (!actor) return BigInt(0);
+      return actor.getPageVisitCount();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetVisitorCountries() {
+  const { actor, isFetching } = useActor();
+  return useQuery<CountryCount[]>({
+    queryKey: ["visitorCountries"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getVisitorCountries();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetPaymentSummary() {
+  const { actor, isFetching } = useActor();
+  return useQuery<PaymentSummary>({
+    queryKey: ["paymentSummary"],
+    queryFn: async () => {
+      if (!actor) {
+        return {
+          totalOrders: BigInt(0),
+          pendingOrders: BigInt(0),
+          approvedOrders: BigInt(0),
+          rejectedOrders: BigInt(0),
+        };
+      }
+      return actor.getPaymentSummary();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useRecordPageVisit() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: async (country: string) => {
+      if (!actor) return;
+      return actor.recordPageVisit(country);
+    },
+  });
+}
+
+export function useGetOrdersByEmail() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: async (email: string) => {
+      if (!actor) throw new Error("No actor");
+      return actor.getOrdersByEmail(email);
     },
   });
 }

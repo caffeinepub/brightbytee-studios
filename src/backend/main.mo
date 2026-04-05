@@ -1,19 +1,18 @@
 import Map "mo:core/Map";
-import Array "mo:core/Array";
 import Time "mo:core/Time";
 import Text "mo:core/Text";
 import Principal "mo:core/Principal";
-import Iter "mo:core/Iter";
 import List "mo:core/List";
 import Runtime "mo:core/Runtime";
-
 import Order "mo:core/Order";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import MixinStorage "blob-storage/Mixin";
 
 
 actor {
+  // caller field kept for migration compatibility with existing stored records
   type PaymentRecord = {
     templateId : Nat;
     transactionRef : Text;
@@ -71,17 +70,34 @@ actor {
     blockedAt : Int;
   };
 
+  type OrderStatus = { #pending; #approved; #rejected };
+
+  type Order = {
+    id : Nat;
+    templateId : Nat;
+    transactionRef : Text;
+    screenshotBlobId : Text;
+    buyerName : Text;
+    buyerEmail : Text;
+    buyerMobile : Text;
+    buyerAddress : Text;
+    businessDetails : Text;
+    accountRecovery : Bool;
+    templateUseCase : Text;
+    status : OrderStatus;
+    createdAt : Int;
+  };
+
+  type CountryCount = {
+    country : Text;
+    count : Nat;
+  };
+
   module Template {
     public func compare(a : Template, b : Template) : Order.Order {
       Text.compare(a.name, b.name);
     };
   };
-
-  include MixinStorage();
-
-  // Initialize the user system state
-  let accessControlState = AccessControl.initState();
-  include MixinAuthorization(accessControlState);
 
   let templates = Map.empty<Nat, Template>();
   let announcements = Map.empty<Nat, Announcement>();
@@ -89,8 +105,11 @@ actor {
   let reviews = Map.empty<Nat, Review>();
   let policyDocuments = Map.empty<Nat, PolicyDocument>();
   let blockedBuyers = Map.empty<Nat, BlockedBuyer>();
+  let orders = Map.empty<Nat, Order>();
+  let countryCounts = Map.empty<Text, Nat>();
 
   var nextId = 0;
+  var pageVisitCount : Nat = 0;
 
   func getNextId() : Nat {
     let id = nextId;
@@ -119,19 +138,19 @@ actor {
     };
   };
 
-  public query ({ caller }) func getTemplates() : async [Template] {
+  public query func getTemplates() : async [Template] {
     templates.values().toArray().filter(func(t) { not t.isFree }).sort();
   };
 
-  public query ({ caller }) func getFreeTemplates() : async [Template] {
+  public query func getFreeTemplates() : async [Template] {
     templates.values().toArray().filter(func(t) { t.isFree }).sort();
   };
 
-  public query ({ caller }) func getAnnouncements() : async [Announcement] {
+  public query func getAnnouncements() : async [Announcement] {
     announcements.values().toArray().filter(func(a) { a.isPublished });
   };
 
-  public shared ({ caller }) func addTemplate(name : Text, description : Text, price : Nat, isFree : Bool, previewImageBlobId : Text, templateFileBlobId : Text, features : [Text]) : async Nat {
+  public shared func addTemplate(name : Text, description : Text, price : Nat, isFree : Bool, previewImageBlobId : Text, templateFileBlobId : Text, features : [Text]) : async Nat {
     let id = getNextId();
     let template : Template = {
       id;
@@ -148,7 +167,7 @@ actor {
     id;
   };
 
-  public shared ({ caller }) func updateTemplate(id : Nat, name : Text, description : Text, price : Nat, isFree : Bool, features : [Text]) : async Bool {
+  public shared func updateTemplate(id : Nat, name : Text, description : Text, price : Nat, isFree : Bool, features : [Text]) : async Bool {
     let template = switch (templates.get(id)) {
       case (?t) { t };
       case (null) { Runtime.trap("Template not found") };
@@ -165,12 +184,12 @@ actor {
     true;
   };
 
-  public shared ({ caller }) func deleteTemplate(id : Nat) : async Bool {
+  public shared func deleteTemplate(id : Nat) : async Bool {
     templates.remove(id);
     true;
   };
 
-  public shared ({ caller }) func addAnnouncement(title : Text, content : Text, isPublished : Bool) : async Nat {
+  public shared func addAnnouncement(title : Text, content : Text, isPublished : Bool) : async Nat {
     if (Text.equal(title, "")) { Runtime.trap("Title must not be empty!") };
     if (Text.equal(content, "")) { Runtime.trap("Content must not be empty!") };
     let id = getNextId();
@@ -185,7 +204,7 @@ actor {
     id;
   };
 
-  public shared ({ caller }) func updateAnnouncement(announcement : Announcement) : async Bool {
+  public shared func updateAnnouncement(announcement : Announcement) : async Bool {
     let existing = getAnnouncementById(announcement.id);
     let updated = {
       existing with
@@ -197,7 +216,7 @@ actor {
     true;
   };
 
-  public shared ({ caller }) func deleteAnnouncement(id : Nat) : async Bool {
+  public shared func deleteAnnouncement(id : Nat) : async Bool {
     announcements.remove(id);
     true;
   };
@@ -209,7 +228,6 @@ actor {
     if (not buyerEmail.contains(#char '@')) {
       Runtime.trap("Invalid email address: " # buyerEmail);
     };
-    // Check if buyer email is blocked
     let isBlocked = blockedBuyers.values().toArray().any(func(b) { Text.equal(b.email, buyerEmail) });
     if (isBlocked) {
       Runtime.trap("This email address has been blocked from making purchases");
@@ -230,19 +248,19 @@ actor {
     true;
   };
 
-  public query ({ caller }) func getTemplateFileId(templateId : Nat, transactionRef : Text) : async ?Text {
+  public query func getTemplateFileId(templateId : Nat, transactionRef : Text) : async ?Text {
     let template = getTemplateInternal(templateId);
     if (template.isFree) {
       return ?template.templateFileBlobId;
     };
-    let hasPaid = paymentRecords.any(func(record) { record.templateId == templateId and record.transactionRef == transactionRef and record.caller == caller });
+    let hasPaid = paymentRecords.any(func(r) { r.templateId == templateId and Text.equal(r.transactionRef, transactionRef) });
     if (hasPaid) {
       return ?template.templateFileBlobId;
     };
     null;
   };
 
-  public shared ({ caller }) func addReview(templateId : Nat, reviewerName : Text, rating : Nat, comment : Text) : async Nat {
+  public shared func addReview(templateId : Nat, reviewerName : Text, rating : Nat, comment : Text) : async Nat {
     if (Text.equal(reviewerName, "")) { Runtime.trap("Reviewer name must not be empty!") };
     let id = getNextId();
     let review : Review = {
@@ -257,20 +275,20 @@ actor {
     id;
   };
 
-  public query ({ caller }) func getReviews(templateId : Nat) : async [Review] {
+  public query func getReviews(templateId : Nat) : async [Review] {
     reviews.values().toArray().filter(func(r) { r.templateId == templateId });
   };
 
-  public query ({ caller }) func getAllReviews() : async [Review] {
+  public query func getAllReviews() : async [Review] {
     reviews.values().toArray();
   };
 
-  public shared ({ caller }) func deleteReview(id : Nat) : async Bool {
+  public shared func deleteReview(id : Nat) : async Bool {
     reviews.remove(id);
     true;
   };
 
-  public shared ({ caller }) func addPolicyDocument(docType : Text, fileName : Text, blobId : Text) : async Nat {
+  public shared func addPolicyDocument(docType : Text, fileName : Text, blobId : Text) : async Nat {
     let id = getNextId();
     let document : PolicyDocument = {
       id;
@@ -283,17 +301,17 @@ actor {
     id;
   };
 
-  public shared ({ caller }) func deletePolicyDocument(id : Nat) : async Bool {
+  public shared func deletePolicyDocument(id : Nat) : async Bool {
     let _ = getDocById(id);
     policyDocuments.remove(id);
     true;
   };
 
-  public query ({ caller }) func getPolicyDocuments() : async [PolicyDocument] {
+  public query func getPolicyDocuments() : async [PolicyDocument] {
     policyDocuments.values().toArray();
   };
 
-  public shared ({ caller }) func blockBuyer(email : Text, reason : Text) : async Nat {
+  public shared func blockBuyer(email : Text, reason : Text) : async Nat {
     let id = getNextId();
     let buyer : BlockedBuyer = {
       id;
@@ -305,20 +323,140 @@ actor {
     id;
   };
 
-  public shared ({ caller }) func unblockBuyer(id : Nat) : async Bool {
+  public shared func unblockBuyer(id : Nat) : async Bool {
     switch (blockedBuyers.get(id)) {
-      case (?buyer) {};
+      case (?_) {};
       case (null) { Runtime.trap("Buyer not found") };
     };
     blockedBuyers.remove(id);
     true;
   };
 
-  public query ({ caller }) func getBlockedBuyers() : async [BlockedBuyer] {
+  public query func getBlockedBuyers() : async [BlockedBuyer] {
     blockedBuyers.values().toArray();
   };
 
-  public query ({ caller }) func isEmailBlocked(email : Text) : async Bool {
+  public query func isEmailBlocked(email : Text) : async Bool {
     blockedBuyers.values().toArray().any(func(b) { Text.equal(b.email, email) });
   };
+
+  // --- Orders ---
+
+  public shared func submitOrder(
+    templateId : Nat,
+    transactionRef : Text,
+    screenshotBlobId : Text,
+    buyerName : Text,
+    buyerEmail : Text,
+    buyerMobile : Text,
+    buyerAddress : Text,
+    businessDetails : Text,
+    accountRecovery : Bool,
+    templateUseCase : Text
+  ) : async Nat {
+    if (Text.equal(buyerEmail, "")) { Runtime.trap("Buyer email must not be empty!") };
+    if (Text.equal(transactionRef, "")) { Runtime.trap("Transaction reference must not be empty!") };
+    let isBlocked = blockedBuyers.values().toArray().any(func(b) { Text.equal(b.email, buyerEmail) });
+    if (isBlocked) {
+      Runtime.trap("This email address has been blocked from making purchases");
+    };
+    let id = getNextId();
+    let order : Order = {
+      id;
+      templateId;
+      transactionRef;
+      screenshotBlobId;
+      buyerName;
+      buyerEmail;
+      buyerMobile;
+      buyerAddress;
+      businessDetails;
+      accountRecovery;
+      templateUseCase;
+      status = #pending;
+      createdAt = Time.now();
+    };
+    orders.add(id, order);
+    id;
+  };
+
+  public query func getOrders() : async [Order] {
+    orders.values().toArray();
+  };
+
+  public shared func approveOrder(orderId : Nat) : async Bool {
+    switch (orders.get(orderId)) {
+      case (?o) {
+        let updated = { o with status = #approved };
+        orders.add(orderId, updated);
+        true;
+      };
+      case (null) { Runtime.trap("Order not found") };
+    };
+  };
+
+  public shared func rejectOrder(orderId : Nat) : async Bool {
+    switch (orders.get(orderId)) {
+      case (?o) {
+        let updated = { o with status = #rejected };
+        orders.add(orderId, updated);
+        true;
+      };
+      case (null) { Runtime.trap("Order not found") };
+    };
+  };
+
+  public query func getOrdersByEmail(email : Text) : async [Order] {
+    orders.values().toArray().filter(func(o) { Text.equal(o.buyerEmail, email) });
+  };
+
+  public query func getApprovedOrderFileId(orderId : Nat) : async ?Text {
+    switch (orders.get(orderId)) {
+      case (?o) {
+        switch (o.status) {
+          case (#approved) {
+            let template = getTemplateInternal(o.templateId);
+            ?template.templateFileBlobId;
+          };
+          case (_) { null };
+        };
+      };
+      case (null) { null };
+    };
+  };
+
+  // --- Analytics ---
+
+  public shared func recordPageVisit(country : Text) : async () {
+    pageVisitCount += 1;
+    if (not Text.equal(country, "")) {
+      let current = switch (countryCounts.get(country)) {
+        case (?c) { c };
+        case (null) { 0 };
+      };
+      countryCounts.add(country, current + 1);
+    };
+  };
+
+  public query func getPageVisitCount() : async Nat {
+    pageVisitCount;
+  };
+
+  public query func getVisitorCountries() : async [CountryCount] {
+    countryCounts.entries().map(func((country, count) : (Text, Nat)) : CountryCount { { country; count } }).toArray();
+  };
+
+  public query func getPaymentSummary() : async { totalOrders : Nat; pendingOrders : Nat; approvedOrders : Nat; rejectedOrders : Nat } {
+    let allOrders = orders.values().toArray();
+    let total = allOrders.size();
+    let pending = allOrders.filter(func(o) { switch (o.status) { case (#pending) { true }; case (_) { false } } }).size();
+    let approved = allOrders.filter(func(o) { switch (o.status) { case (#approved) { true }; case (_) { false } } }).size();
+    let rejected = allOrders.filter(func(o) { switch (o.status) { case (#rejected) { true }; case (_) { false } } }).size();
+    { totalOrders = total; pendingOrders = pending; approvedOrders = approved; rejectedOrders = rejected };
+  };
+
+  let accessControlState = AccessControl.initState();
+  include MixinAuthorization(accessControlState);
+
+  include MixinStorage();
 };

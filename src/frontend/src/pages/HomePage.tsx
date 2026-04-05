@@ -1,9 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Sparkles, Star, Zap } from "lucide-react";
+import { ArrowRight, Download, Sparkles, Star, Zap } from "lucide-react";
 import { motion } from "motion/react";
+import { useState } from "react";
+import heroPreview1 from "../../public/assets/generated/template-preview-1.dim_800x500.jpg";
+import heroPreview2 from "../../public/assets/generated/template-preview-2.dim_800x500.jpg";
+import heroPreview3 from "../../public/assets/generated/template-preview-3.dim_800x500.jpg";
 import FreeTemplateCard from "../components/FreeTemplateCard";
+import MyOrdersModal from "../components/MyOrdersModal";
 import TemplateCard from "../components/TemplateCard";
 import {
   useAnnouncements,
@@ -163,6 +168,7 @@ export default function HomePage() {
   const { data: freeTemplates, isLoading: loadingFree } = useFreeTemplates();
   const { data: announcements, isLoading: loadingAnnouncements } =
     useAnnouncements();
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
 
   const displayTemplates =
     templates && templates.length > 0
@@ -253,7 +259,20 @@ export default function HomePage() {
                   </Button>
                 </Link>
               </div>
-              <div className="flex items-center gap-6 mt-10">
+              {/* Check download status button */}
+              <div className="mt-6">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="px-0 text-sm text-muted-foreground hover:text-white gap-2"
+                  onClick={() => setShowOrdersModal(true)}
+                  data-ocid="hero.check_download.button"
+                >
+                  <Download className="w-4 h-4" style={{ color: "#2FF6FF" }} />
+                  Already purchased? Check your download status
+                </Button>
+              </div>
+              <div className="flex items-center gap-6 mt-8">
                 <div className="text-center">
                   <p className="text-2xl font-black">₹500+</p>
                   <p className="text-xs text-muted-foreground">
@@ -289,7 +308,7 @@ export default function HomePage() {
                   style={{ transform: "rotate(3deg)" }}
                 >
                   <img
-                    src="/assets/generated/template-preview-1.dim_800x500.jpg"
+                    src={heroPreview1}
                     alt="Template preview"
                     className="w-full"
                   />
@@ -306,7 +325,7 @@ export default function HomePage() {
                   style={{ transform: "rotate(-4deg)" }}
                 >
                   <img
-                    src="/assets/generated/template-preview-2.dim_800x500.jpg"
+                    src={heroPreview2}
                     alt="Template preview"
                     className="w-full"
                   />
@@ -326,7 +345,7 @@ export default function HomePage() {
                   }}
                 >
                   <img
-                    src="/assets/generated/template-preview-3.dim_800x500.jpg"
+                    src={heroPreview3}
                     alt="Template preview"
                     className="w-full"
                   />
@@ -498,6 +517,11 @@ export default function HomePage() {
           )}
         </div>
       </section>
+
+      <MyOrdersModal
+        open={showOrdersModal}
+        onClose={() => setShowOrdersModal(false)}
+      />
     </div>
   );
 }

@@ -6,8 +6,10 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
+import { useRecordPageVisit } from "./hooks/useQueries";
 import AboutPage from "./pages/AboutPage";
 import AdminPage from "./pages/AdminPage";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
@@ -17,8 +19,16 @@ import HomePage from "./pages/HomePage";
 import PoliciesPage from "./pages/PoliciesPage";
 import TemplatesPage from "./pages/TemplatesPage";
 
-const rootRoute = createRootRoute({
-  component: () => (
+function RootLayout() {
+  const { mutate: recordVisit } = useRecordPageVisit();
+
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const country = tz.split("/")[0] || "Unknown";
+    recordVisit(country);
+  }, [recordVisit]);
+
+  return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Header />
       <main className="flex-1">
@@ -27,7 +37,11 @@ const rootRoute = createRootRoute({
       <Footer />
       <Toaster />
     </div>
-  ),
+  );
+}
+
+const rootRoute = createRootRoute({
+  component: RootLayout,
 });
 
 const indexRoute = createRoute({

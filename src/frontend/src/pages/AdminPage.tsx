@@ -22,17 +22,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Ban,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
   Edit,
+  ExternalLink,
   FileText,
+  Globe,
   Loader2,
   Lock,
   LogOut,
+  Package,
   Plus,
   Shield,
+  ShoppingCart,
   Star,
   Trash2,
   Upload,
   UserX,
+  Users,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useRef, useState } from "react";
@@ -44,6 +52,7 @@ import {
   useAddPolicyDocument,
   useAddTemplate,
   useAnnouncements,
+  useApproveOrder,
   useBlockBuyer,
   useDeleteAnnouncement,
   useDeletePolicyDocument,
@@ -51,13 +60,20 @@ import {
   useDeleteTemplate,
   useFreeTemplates,
   useGetAllReviews,
+  useGetApprovedOrderFileId,
   useGetBlockedBuyers,
+  useGetOrders,
+  useGetPageVisitCount,
+  useGetPaymentSummary,
   useGetPolicyDocuments,
+  useGetVisitorCountries,
+  useRejectOrder,
   useTemplates,
   useUnblockBuyer,
   useUpdateAnnouncement,
   useUpdateTemplate,
 } from "../hooks/useQueries";
+import type { Order } from "../types/orderTypes";
 
 const ADMIN_PASSWORD = "Arshia@41010";
 
@@ -141,6 +157,233 @@ export default function AdminPage() {
   );
 }
 
+// ────────────────────────────────────────────────────────────────────────────────
+function StatusBadge({ status }: { status: Order["status"] }) {
+  if ("pending" in status) {
+    return (
+      <Badge
+        style={{
+          background: "rgba(234,179,8,0.15)",
+          color: "#eab308",
+          border: "1px solid rgba(234,179,8,0.3)",
+        }}
+      >
+        Pending
+      </Badge>
+    );
+  }
+  if ("approved" in status) {
+    return (
+      <Badge
+        style={{
+          background: "rgba(34,197,94,0.15)",
+          color: "#22c55e",
+          border: "1px solid rgba(34,197,94,0.3)",
+        }}
+      >
+        Approved
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      style={{
+        background: "rgba(239,68,68,0.15)",
+        color: "#ef4444",
+        border: "1px solid rgba(239,68,68,0.3)",
+      }}
+    >
+      Rejected
+    </Badge>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
+function OrderRow({ order }: { order: Order }) {
+  const [expanded, setExpanded] = useState(false);
+  const approveOrder = useApproveOrder();
+  const rejectOrder = useRejectOrder();
+  const getFileId = useGetApprovedOrderFileId();
+  const { getBlobUrl, downloadBlob } = useBlobStorage();
+  const isPending = "pending" in order.status;
+  const isApproved = "approved" in order.status;
+
+  const handleViewScreenshot = async () => {
+    try {
+      const url = await getBlobUrl(order.screenshotBlobId);
+      window.open(url, "_blank");
+    } catch (_err) {
+      toast.error("Could not open screenshot.");
+    }
+  };
+
+  const handleApprove = async () => {
+    try {
+      await approveOrder.mutateAsync(order.id);
+      toast.success("Order approved.");
+    } catch (_err) {
+      toast.error("Failed to approve order.");
+    }
+  };
+
+  const handleReject = async () => {
+    if (!confirm("Reject this order?")) return;
+    try {
+      await rejectOrder.mutateAsync(order.id);
+      toast.success("Order rejected.");
+    } catch (_err) {
+      toast.error("Failed to reject order.");
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      const fileId = await getFileId.mutateAsync(order.id);
+      if (fileId) {
+        await downloadBlob(fileId, `template-${order.templateId}.html`);
+      } else {
+        toast.error("No file available for this order.");
+      }
+    } catch (_err) {
+      toast.error("Download failed.");
+    }
+  };
+
+  const dateStr = new Date(
+    Number(order.createdAt) / 1_000_000,
+  ).toLocaleDateString("en-IN");
+
+  return (
+    <>
+      <TableRow className="border-white/5">
+        <TableCell className="font-mono text-sm text-muted-foreground">
+          #{order.templateId.toString()}
+        </TableCell>
+        <TableCell>
+          <div className="font-medium text-sm">{order.buyerName}</div>
+          <div className="text-xs text-muted-foreground">
+            {order.buyerEmail}
+          </div>
+        </TableCell>
+        <TableCell className="font-mono text-xs text-muted-foreground max-w-[120px] truncate">
+          {order.transactionRef}
+        </TableCell>
+        <TableCell>
+          <StatusBadge status={order.status} />
+        </TableCell>
+        <TableCell className="text-xs text-muted-foreground">
+          {dateStr}
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-wrap gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-white/10 text-xs h-7 px-2 gap-1"
+              onClick={handleViewScreenshot}
+            >
+              <ExternalLink className="w-3 h-3" /> Screenshot
+            </Button>
+            {isPending && (
+              <>
+                <Button
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  style={{
+                    background: "rgba(34,197,94,0.15)",
+                    color: "#22c55e",
+                    border: "1px solid rgba(34,197,94,0.3)",
+                  }}
+                  onClick={handleApprove}
+                  disabled={approveOrder.isPending}
+                >
+                  {approveOrder.isPending ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : null}
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  style={{
+                    background: "rgba(239,68,68,0.15)",
+                    color: "#ef4444",
+                    border: "1px solid rgba(239,68,68,0.3)",
+                  }}
+                  onClick={handleReject}
+                  disabled={rejectOrder.isPending}
+                >
+                  Reject
+                </Button>
+              </>
+            )}
+            {isApproved && (
+              <Button
+                size="sm"
+                className="h-7 px-2 text-xs btn-gradient text-white border-0"
+                onClick={handleDownload}
+                disabled={getFileId.isPending}
+              >
+                {getFileId.isPending ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : null}
+                Download
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              )}
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+      {expanded && (
+        <TableRow className="border-white/5 bg-white/[0.02]">
+          <TableCell colSpan={6} className="py-3">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground text-xs">Mobile: </span>
+                <span>{order.buyerMobile}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">Address: </span>
+                <span>{order.buyerAddress}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">
+                  Business:{" "}
+                </span>
+                <span>{order.businessDetails}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">
+                  Use Case:{" "}
+                </span>
+                <span>{order.templateUseCase}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">
+                  Account Recovery:{" "}
+                </span>
+                <span>{order.accountRecovery ? "Yes" : "No"}</span>
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const { data: paidTemplates, isLoading: loadingPaid } = useTemplates();
   const { data: freeTemplates, isLoading: loadingFree } = useFreeTemplates();
@@ -150,6 +393,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const { data: blockedBuyers, isLoading: loadingBlocked } =
     useGetBlockedBuyers();
   const { data: allReviews, isLoading: loadingReviews } = useGetAllReviews();
+  const { data: orders, isLoading: loadingOrders } = useGetOrders();
+  const { data: visitCount, isLoading: loadingVisits } = useGetPageVisitCount();
+  const { data: visitorCountries, isLoading: loadingCountries } =
+    useGetVisitorCountries();
+  const { data: paymentSummary, isLoading: loadingSummary } =
+    useGetPaymentSummary();
 
   const templates = [...(paidTemplates ?? []), ...(freeTemplates ?? [])].sort(
     (a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
@@ -237,11 +486,15 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   };
 
   const handleSaveTemplate = async () => {
-    if (!templateForm.name || !templateForm.price) {
-      toast.error("Name and price are required.");
+    if (!templateForm.name) {
+      toast.error("Template name is required.");
       return;
     }
-    const priceRaw = Number(templateForm.price);
+    if (!templateForm.isFree && !templateForm.price) {
+      toast.error("Price is required for paid templates.");
+      return;
+    }
+    const priceRaw = templateForm.isFree ? 0 : Number(templateForm.price);
     if (Number.isNaN(priceRaw) || priceRaw < 0) {
       toast.error("Invalid price.");
       return;
@@ -435,6 +688,53 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     { key: "copyright", label: "Copyright Policy", icon: FileText },
   ];
 
+  // Derive order counts
+  const pendingCount = (orders ?? []).filter(
+    (o) => "pending" in o.status,
+  ).length;
+  const approvedCount = (orders ?? []).filter(
+    (o) => "approved" in o.status,
+  ).length;
+  const rejectedCount = (orders ?? []).filter(
+    (o) => "rejected" in o.status,
+  ).length;
+
+  // Derive unique customers from orders
+  const customersMap = new Map<
+    string,
+    {
+      name: string;
+      email: string;
+      mobile: string;
+      address: string;
+      businessDetails: string;
+      templateUseCase: string;
+      orderCount: number;
+    }
+  >();
+  for (const order of orders ?? []) {
+    const existing = customersMap.get(order.buyerEmail);
+    if (existing) {
+      existing.orderCount += 1;
+    } else {
+      customersMap.set(order.buyerEmail, {
+        name: order.buyerName,
+        email: order.buyerEmail,
+        mobile: order.buyerMobile,
+        address: order.buyerAddress,
+        businessDetails: order.businessDetails,
+        templateUseCase: order.templateUseCase,
+        orderCount: 1,
+      });
+    }
+  }
+  const customers = Array.from(customersMap.values());
+
+  // Sorted countries
+  const sortedCountries = [...(visitorCountries ?? [])].sort(
+    (a, b) => Number(b.count) - Number(a.count),
+  );
+
   return (
     <div className="min-h-screen py-12 px-4">
       <div className="max-w-6xl mx-auto">
@@ -462,7 +762,39 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               className="data-[state=active]:bg-white/10"
               data-ocid="admin.templates.tab"
             >
-              Templates
+              <Package className="w-3.5 h-3.5 mr-1" /> Templates
+            </TabsTrigger>
+            <TabsTrigger
+              value="orders"
+              className="data-[state=active]:bg-white/10"
+              data-ocid="admin.orders.tab"
+            >
+              <ShoppingCart className="w-3.5 h-3.5 mr-1" /> Orders
+              {pendingCount > 0 && (
+                <span
+                  className="ml-1.5 rounded-full text-[10px] font-bold px-1.5 py-0.5"
+                  style={{
+                    background: "rgba(234,179,8,0.2)",
+                    color: "#eab308",
+                  }}
+                >
+                  {pendingCount}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="customers"
+              className="data-[state=active]:bg-white/10"
+              data-ocid="admin.customers.tab"
+            >
+              <Users className="w-3.5 h-3.5 mr-1" /> Customers
+            </TabsTrigger>
+            <TabsTrigger
+              value="analytics"
+              className="data-[state=active]:bg-white/10"
+              data-ocid="admin.analytics.tab"
+            >
+              <BarChart3 className="w-3.5 h-3.5 mr-1" /> Analytics
             </TabsTrigger>
             <TabsTrigger
               value="announcements"
@@ -483,7 +815,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               className="data-[state=active]:bg-white/10"
               data-ocid="admin.blocked.tab"
             >
-              <Ban className="w-3.5 h-3.5 mr-1" /> Blocked Buyers
+              <Ban className="w-3.5 h-3.5 mr-1" /> Blocked
             </TabsTrigger>
             <TabsTrigger
               value="reviews"
@@ -494,7 +826,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             </TabsTrigger>
           </TabsList>
 
-          {/* Templates */}
+          {/* ───────────── Templates ─────────────────────────────────────── */}
           <TabsContent value="templates">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">
@@ -600,7 +932,294 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             )}
           </TabsContent>
 
-          {/* Announcements */}
+          {/* ───────────── Orders ───────────────────────────────────────── */}
+          <TabsContent value="orders">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold">
+                Orders ({orders?.length ?? 0})
+              </h2>
+              <div className="flex gap-3 mt-3">
+                <span
+                  className="text-xs px-2 py-1 rounded-full font-semibold"
+                  style={{
+                    background: "rgba(234,179,8,0.15)",
+                    color: "#eab308",
+                  }}
+                >
+                  {pendingCount} Pending
+                </span>
+                <span
+                  className="text-xs px-2 py-1 rounded-full font-semibold"
+                  style={{
+                    background: "rgba(34,197,94,0.15)",
+                    color: "#22c55e",
+                  }}
+                >
+                  {approvedCount} Approved
+                </span>
+                <span
+                  className="text-xs px-2 py-1 rounded-full font-semibold"
+                  style={{
+                    background: "rgba(239,68,68,0.15)",
+                    color: "#ef4444",
+                  }}
+                >
+                  {rejectedCount} Rejected
+                </span>
+              </div>
+            </div>
+            {loadingOrders ? (
+              <div
+                className="text-center py-12"
+                data-ocid="orders.loading_state"
+              >
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
+              </div>
+            ) : !orders || orders.length === 0 ? (
+              <div
+                className="text-center py-16 glass-card rounded-2xl"
+                data-ocid="orders.empty_state"
+              >
+                <ShoppingCart className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-muted-foreground">No orders yet.</p>
+              </div>
+            ) : (
+              <div
+                className="glass-card rounded-2xl overflow-hidden"
+                data-ocid="admin.orders.table"
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-white/10">
+                      <TableHead>Template</TableHead>
+                      <TableHead>Buyer</TableHead>
+                      <TableHead>Txn Ref</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map((order) => (
+                      <OrderRow key={order.id.toString()} order={order} />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ───────────── Customers ─────────────────────────────────────── */}
+          <TabsContent value="customers">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold">
+                Customers ({customers.length})
+              </h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Unique buyers derived from order submissions.
+              </p>
+            </div>
+            {loadingOrders ? (
+              <div
+                className="text-center py-12"
+                data-ocid="customers.loading_state"
+              >
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
+              </div>
+            ) : customers.length === 0 ? (
+              <div
+                className="text-center py-16 glass-card rounded-2xl"
+                data-ocid="customers.empty_state"
+              >
+                <Users className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-muted-foreground">No customers yet.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {customers.map((c, i) => (
+                  <div
+                    key={c.email}
+                    className="glass-card rounded-2xl p-5"
+                    data-ocid={`admin.customer.card.${i + 1}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-bold truncate">{c.name}</p>
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full shrink-0"
+                            style={{
+                              background: "rgba(139,92,255,0.15)",
+                              color: "#8B5CFF",
+                            }}
+                          >
+                            {c.orderCount}{" "}
+                            {c.orderCount === 1 ? "order" : "orders"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {c.email}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {c.mobile}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/5 text-sm">
+                      <div>
+                        <span className="text-muted-foreground text-xs">
+                          Address:{" "}
+                        </span>
+                        <span>{c.address}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-xs">
+                          Use Case:{" "}
+                        </span>
+                        <span>{c.templateUseCase}</span>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <span className="text-muted-foreground text-xs">
+                          Business:{" "}
+                        </span>
+                        <span>{c.businessDetails}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ───────────── Analytics ─────────────────────────────────────── */}
+          <TabsContent value="analytics">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold">Analytics</h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Page visits, payment stats, and visitor countries.
+              </p>
+            </div>
+
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+              {/* Page visits */}
+              <div
+                className="glass-card rounded-2xl p-5 col-span-2 lg:col-span-1"
+                data-ocid="analytics.visits.card"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Globe className="w-4 h-4" style={{ color: "#2FF6FF" }} />
+                  <p className="text-xs text-muted-foreground">Page Visits</p>
+                </div>
+                {loadingVisits ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <p
+                    className="text-2xl font-black"
+                    style={{ color: "#2FF6FF" }}
+                  >
+                    {Number(visitCount ?? 0).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              {/* Payment summary */}
+              {(
+                [
+                  {
+                    label: "Total Orders",
+                    key: "totalOrders" as const,
+                    color: "#8B5CFF",
+                  },
+                  {
+                    label: "Pending",
+                    key: "pendingOrders" as const,
+                    color: "#eab308",
+                  },
+                  {
+                    label: "Approved",
+                    key: "approvedOrders" as const,
+                    color: "#22c55e",
+                  },
+                  {
+                    label: "Rejected",
+                    key: "rejectedOrders" as const,
+                    color: "#ef4444",
+                  },
+                ] as const
+              ).map(({ label, key, color }) => (
+                <div
+                  key={key}
+                  className="glass-card rounded-2xl p-5"
+                  data-ocid={`analytics.${key}.card`}
+                >
+                  <p className="text-xs text-muted-foreground mb-2">{label}</p>
+                  {loadingSummary ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <p className="text-2xl font-black" style={{ color }}>
+                      {Number(paymentSummary?.[key] ?? 0).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Visitor countries */}
+            <div>
+              <h3 className="font-bold mb-4 flex items-center gap-2">
+                <Globe className="w-4 h-4" style={{ color: "#2FF6FF" }} />
+                Visitor Countries
+              </h3>
+              {loadingCountries ? (
+                <div
+                  className="text-center py-12"
+                  data-ocid="analytics.countries.loading_state"
+                >
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
+                </div>
+              ) : sortedCountries.length === 0 ? (
+                <div
+                  className="text-center py-12 glass-card rounded-2xl"
+                  data-ocid="analytics.countries.empty_state"
+                >
+                  <p className="text-muted-foreground">No visitor data yet.</p>
+                </div>
+              ) : (
+                <div
+                  className="glass-card rounded-2xl overflow-hidden"
+                  data-ocid="analytics.countries.table"
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-white/10">
+                        <TableHead>Timezone Region</TableHead>
+                        <TableHead className="text-right">Visits</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedCountries.map((c, i) => (
+                        <TableRow
+                          key={c.country}
+                          className="border-white/5"
+                          data-ocid={`analytics.country.row.${i + 1}`}
+                        >
+                          <TableCell className="font-medium">
+                            {c.country}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            {Number(c.count).toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* ───────────── Announcements ─────────────────────────────────── */}
           <TabsContent value="announcements">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">
@@ -697,7 +1316,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             )}
           </TabsContent>
 
-          {/* Policies */}
+          {/* ───────────── Policies ────────────────────────────────────────── */}
           <TabsContent value="policies">
             <div className="mb-6">
               <h2 className="text-xl font-bold">Policy Documents</h2>
@@ -801,7 +1420,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             )}
           </TabsContent>
 
-          {/* Blocked Buyers */}
+          {/* ───────────── Blocked Buyers ─────────────────────────────────── */}
           <TabsContent value="blocked">
             <div className="mb-6">
               <h2 className="text-xl font-bold">Blocked Buyers</h2>
@@ -932,7 +1551,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             )}
           </TabsContent>
 
-          {/* Reviews */}
+          {/* ───────────── Reviews ──────────────────────────────────────────── */}
           <TabsContent value="reviews">
             <div className="mb-6">
               <h2 className="text-xl font-bold">

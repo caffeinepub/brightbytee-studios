@@ -193,6 +193,10 @@ export default function AboutPage() {
                 <p className="text-sm font-semibold text-muted-foreground">
                   Founder &amp; Creative Strategist
                 </p>
+                <p className="text-sm text-muted-foreground mt-2 italic leading-relaxed">
+                  He found the brand at the age of 16 and with the support of
+                  his parents, Friends and with the blessing of god.
+                </p>
               </div>
               <div className="space-y-3 text-sm">
                 <p className="text-muted-foreground leading-relaxed">

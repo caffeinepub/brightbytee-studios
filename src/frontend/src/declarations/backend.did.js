@@ -63,6 +63,36 @@ export const PolicyDocument = IDL.Record({
   'docType' : IDL.Text,
   'uploadedAt' : IDL.Int,
 });
+export const OrderStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'approved' : IDL.Null,
+  'rejected' : IDL.Null,
+});
+export const Order = IDL.Record({
+  'id' : IDL.Nat,
+  'templateId' : IDL.Nat,
+  'transactionRef' : IDL.Text,
+  'screenshotBlobId' : IDL.Text,
+  'buyerName' : IDL.Text,
+  'buyerEmail' : IDL.Text,
+  'buyerMobile' : IDL.Text,
+  'buyerAddress' : IDL.Text,
+  'businessDetails' : IDL.Text,
+  'accountRecovery' : IDL.Bool,
+  'templateUseCase' : IDL.Text,
+  'status' : OrderStatus,
+  'createdAt' : IDL.Int,
+});
+export const CountryCount = IDL.Record({
+  'country' : IDL.Text,
+  'count' : IDL.Nat,
+});
+export const PaymentSummary = IDL.Record({
+  'totalOrders' : IDL.Nat,
+  'pendingOrders' : IDL.Nat,
+  'approvedOrders' : IDL.Nat,
+  'rejectedOrders' : IDL.Nat,
+});
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -150,6 +180,31 @@ export const idlService = IDL.Service({
       [IDL.Bool],
       [],
     ),
+  'submitOrder' : IDL.Func(
+      [
+        IDL.Nat,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Bool,
+        IDL.Text,
+      ],
+      [IDL.Nat],
+      [],
+    ),
+  'getOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
+  'approveOrder' : IDL.Func([IDL.Nat], [IDL.Bool], []),
+  'rejectOrder' : IDL.Func([IDL.Nat], [IDL.Bool], []),
+  'getOrdersByEmail' : IDL.Func([IDL.Text], [IDL.Vec(Order)], ['query']),
+  'getApprovedOrderFileId' : IDL.Func([IDL.Nat], [IDL.Opt(IDL.Text)], ['query']),
+  'recordPageVisit' : IDL.Func([IDL.Text], [], []),
+  'getPageVisitCount' : IDL.Func([], [IDL.Nat], ['query']),
+  'getVisitorCountries' : IDL.Func([], [IDL.Vec(CountryCount)], ['query']),
+  'getPaymentSummary' : IDL.Func([], [PaymentSummary], ['query']),
 });
 
 export const idlInitArgs = [];
@@ -209,6 +264,36 @@ export const idlFactory = ({ IDL }) => {
     'blobId' : IDL.Text,
     'docType' : IDL.Text,
     'uploadedAt' : IDL.Int,
+  });
+  const OrderStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'approved' : IDL.Null,
+    'rejected' : IDL.Null,
+  });
+  const Order = IDL.Record({
+    'id' : IDL.Nat,
+    'templateId' : IDL.Nat,
+    'transactionRef' : IDL.Text,
+    'screenshotBlobId' : IDL.Text,
+    'buyerName' : IDL.Text,
+    'buyerEmail' : IDL.Text,
+    'buyerMobile' : IDL.Text,
+    'buyerAddress' : IDL.Text,
+    'businessDetails' : IDL.Text,
+    'accountRecovery' : IDL.Bool,
+    'templateUseCase' : IDL.Text,
+    'status' : OrderStatus,
+    'createdAt' : IDL.Int,
+  });
+  const CountryCount = IDL.Record({
+    'country' : IDL.Text,
+    'count' : IDL.Nat,
+  });
+  const PaymentSummary = IDL.Record({
+    'totalOrders' : IDL.Nat,
+    'pendingOrders' : IDL.Nat,
+    'approvedOrders' : IDL.Nat,
+    'rejectedOrders' : IDL.Nat,
   });
   
   return IDL.Service({
@@ -305,6 +390,31 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Bool],
         [],
       ),
+    'submitOrder' : IDL.Func(
+        [
+          IDL.Nat,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Bool,
+          IDL.Text,
+        ],
+        [IDL.Nat],
+        [],
+      ),
+    'getOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
+    'approveOrder' : IDL.Func([IDL.Nat], [IDL.Bool], []),
+    'rejectOrder' : IDL.Func([IDL.Nat], [IDL.Bool], []),
+    'getOrdersByEmail' : IDL.Func([IDL.Text], [IDL.Vec(Order)], ['query']),
+    'getApprovedOrderFileId' : IDL.Func([IDL.Nat], [IDL.Opt(IDL.Text)], ['query']),
+    'recordPageVisit' : IDL.Func([IDL.Text], [], []),
+    'getPageVisitCount' : IDL.Func([], [IDL.Nat], ['query']),
+    'getVisitorCountries' : IDL.Func([], [IDL.Vec(CountryCount)], ['query']),
+    'getPaymentSummary' : IDL.Func([], [PaymentSummary], ['query']),
   });
 };
 

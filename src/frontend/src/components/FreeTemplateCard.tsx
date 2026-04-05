@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Check, Download, Info, Loader2, Star, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import freePreview1 from "../../public/assets/generated/template-free-1.dim_800x500.jpg";
+import freePreview2 from "../../public/assets/generated/template-free-2.dim_800x500.jpg";
+import freePreview3 from "../../public/assets/generated/template-free-3.dim_800x500.jpg";
 import type { Template } from "../backend";
 import { useBlobStorage } from "../hooks/useBlobStorage";
 import {
@@ -23,11 +26,7 @@ interface FreeTemplateCardProps {
   index: number;
 }
 
-const STATIC_PREVIEWS = [
-  "/assets/generated/template-free-1.dim_800x500.jpg",
-  "/assets/generated/template-free-2.dim_800x500.jpg",
-  "/assets/generated/template-free-3.dim_800x500.jpg",
-];
+const STATIC_PREVIEWS = [freePreview1, freePreview2, freePreview3];
 
 function StarRatingDisplay({ rating }: { rating: number }) {
   return (
@@ -50,10 +49,7 @@ function StarRatingDisplay({ rating }: { rating: number }) {
 function StarRatingSelector({
   value,
   onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
+}: { value: number; onChange: (v: number) => void }) {
   const [hovered, setHovered] = useState(0);
   return (
     <div className="flex gap-1" data-ocid="review.rating.select">
@@ -86,8 +82,6 @@ export default function FreeTemplateCard({
   const [imageUrl, setImageUrl] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const getFileId = useGetTemplateFileId();
-
-  // Review form state
   const [reviewName, setReviewName] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
@@ -151,21 +145,11 @@ export default function FreeTemplateCard({
         className="glass-card rounded-2xl overflow-hidden flex flex-col transition-transform hover:-translate-y-1 hover:shadow-card"
       >
         <div className="relative h-48 overflow-hidden">
-          {displayImage ? (
-            <img
-              src={displayImage}
-              alt={template.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div
-              className="w-full h-full"
-              style={{
-                background:
-                  "linear-gradient(135deg, oklch(0.18 0.05 210), oklch(0.20 0.03 250))",
-              }}
-            />
-          )}
+          <img
+            src={displayImage}
+            alt={template.name}
+            className="w-full h-full object-cover"
+          />
           <div className="absolute top-3 right-3">
             <span
               className="text-xs font-bold px-2 py-1 rounded-full"
@@ -179,7 +163,6 @@ export default function FreeTemplateCard({
             </span>
           </div>
         </div>
-
         <div className="p-5 flex flex-col flex-1">
           <h3 className="font-bold text-base mb-2">{template.name}</h3>
           <p className="text-muted-foreground text-sm mb-4 flex-1 line-clamp-2">
@@ -213,7 +196,6 @@ export default function FreeTemplateCard({
         </div>
       </div>
 
-      {/* Details Modal */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent
           className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
@@ -240,8 +222,6 @@ export default function FreeTemplateCard({
               </span>
             </div>
           </DialogHeader>
-
-          {/* Preview image */}
           <div className="rounded-xl overflow-hidden h-48 mt-1">
             <img
               src={displayImage}
@@ -249,8 +229,6 @@ export default function FreeTemplateCard({
               className="w-full h-full object-cover"
             />
           </div>
-
-          {/* Description */}
           <div className="space-y-4">
             <div>
               <p
@@ -263,7 +241,6 @@ export default function FreeTemplateCard({
                 {template.description || "No description provided."}
               </p>
             </div>
-
             {template.features.length > 0 && (
               <div>
                 <p
@@ -285,8 +262,6 @@ export default function FreeTemplateCard({
                 </ul>
               </div>
             )}
-
-            {/* Reviews Section */}
             <div>
               <p
                 className="text-xs font-semibold uppercase tracking-widest mb-3"
@@ -294,7 +269,6 @@ export default function FreeTemplateCard({
               >
                 Customer Reviews
               </p>
-
               {reviewsLoading ? (
                 <div
                   className="flex items-center gap-2 text-sm py-3"
@@ -358,8 +332,6 @@ export default function FreeTemplateCard({
                   ))}
                 </div>
               )}
-
-              {/* Leave a review form */}
               <div
                 className="rounded-xl p-4 space-y-3 mt-2"
                 style={{
@@ -374,7 +346,6 @@ export default function FreeTemplateCard({
                 >
                   Leave a Review
                 </p>
-
                 <input
                   type="text"
                   placeholder="Your name"
@@ -387,12 +358,10 @@ export default function FreeTemplateCard({
                   }}
                   data-ocid={`free.review.input.${index + 1}`}
                 />
-
                 <StarRatingSelector
                   value={reviewRating}
                   onChange={setReviewRating}
                 />
-
                 <Textarea
                   placeholder="Share your experience with this template..."
                   value={reviewComment}
@@ -405,7 +374,6 @@ export default function FreeTemplateCard({
                   }}
                   data-ocid={`free.review.textarea.${index + 1}`}
                 />
-
                 <Button
                   className="w-full btn-gradient text-white border-0 font-semibold h-9 text-sm"
                   onClick={handleSubmitReview}
@@ -432,8 +400,6 @@ export default function FreeTemplateCard({
               </div>
             </div>
           </div>
-
-          {/* Actions */}
           <div className="flex gap-3 pt-2">
             <Button
               className="flex-1 btn-gradient text-white border-0 font-bold h-11"

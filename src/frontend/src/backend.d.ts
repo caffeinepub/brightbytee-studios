@@ -46,6 +46,32 @@ export interface Review {
     comment: string;
     rating: bigint;
 }
+export type OrderStatus = { pending: null } | { approved: null } | { rejected: null };
+export interface Order {
+    id: bigint;
+    templateId: bigint;
+    transactionRef: string;
+    screenshotBlobId: string;
+    buyerName: string;
+    buyerEmail: string;
+    buyerMobile: string;
+    buyerAddress: string;
+    businessDetails: string;
+    accountRecovery: boolean;
+    templateUseCase: string;
+    status: OrderStatus;
+    createdAt: bigint;
+}
+export interface CountryCount {
+    country: string;
+    count: bigint;
+}
+export interface PaymentSummary {
+    totalOrders: bigint;
+    pendingOrders: bigint;
+    approvedOrders: bigint;
+    rejectedOrders: bigint;
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -77,4 +103,14 @@ export interface backendInterface {
     unblockBuyer(id: bigint): Promise<boolean>;
     updateAnnouncement(announcement: Announcement): Promise<boolean>;
     updateTemplate(id: bigint, name: string, description: string, price: bigint, isFree: boolean, features: Array<string>): Promise<boolean>;
+    submitOrder(templateId: bigint, transactionRef: string, screenshotBlobId: string, buyerName: string, buyerEmail: string, buyerMobile: string, buyerAddress: string, businessDetails: string, accountRecovery: boolean, templateUseCase: string): Promise<bigint>;
+    getOrders(): Promise<Array<Order>>;
+    approveOrder(orderId: bigint): Promise<boolean>;
+    rejectOrder(orderId: bigint): Promise<boolean>;
+    getOrdersByEmail(email: string): Promise<Array<Order>>;
+    getApprovedOrderFileId(orderId: bigint): Promise<string | null>;
+    recordPageVisit(country: string): Promise<void>;
+    getPageVisitCount(): Promise<bigint>;
+    getVisitorCountries(): Promise<Array<CountryCount>>;
+    getPaymentSummary(): Promise<PaymentSummary>;
 }

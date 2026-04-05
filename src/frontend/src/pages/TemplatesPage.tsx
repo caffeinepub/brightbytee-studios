@@ -1,10 +1,15 @@
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Download } from "lucide-react";
 import { motion } from "motion/react";
+import { useState } from "react";
+import MyOrdersModal from "../components/MyOrdersModal";
 import TemplateCard from "../components/TemplateCard";
 import { useTemplates } from "../hooks/useQueries";
 
 export default function TemplatesPage() {
   const { data: templates, isLoading } = useTemplates();
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
 
   return (
     <div className="min-h-screen py-16 px-4">
@@ -25,6 +30,15 @@ export default function TemplatesPage() {
             Hand-crafted, pixel-perfect website templates ready to deploy.
             Prices range from ₹500 to ₹1,00,000.
           </p>
+          <Button
+            variant="outline"
+            className="mt-4 border-white/15 hover:border-white/30 rounded-full"
+            onClick={() => setShowOrdersModal(true)}
+            data-ocid="templates.check_download.button"
+          >
+            <Download className="w-4 h-4 mr-2" style={{ color: "#2FF6FF" }} />
+            Check My Download Status
+          </Button>
         </motion.div>
 
         {isLoading ? (
@@ -62,6 +76,11 @@ export default function TemplatesPage() {
           </div>
         )}
       </div>
+
+      <MyOrdersModal
+        open={showOrdersModal}
+        onClose={() => setShowOrdersModal(false)}
+      />
     </div>
   );
 }

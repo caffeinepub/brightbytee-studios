@@ -7,22 +7,22 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   AlertCircle,
   Ban,
   CheckCircle,
+  Download,
   Loader2,
   Smartphone,
+  Upload,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Template } from "../backend";
 import { useBlobStorage } from "../hooks/useBlobStorage";
-import {
-  useGetTemplateFileId,
-  useIsEmailBlocked,
-  useRecordPayment,
-} from "../hooks/useQueries";
+import { useIsEmailBlocked, useSubmitOrder } from "../hooks/useQueries";
+import MyOrdersModal from "./MyOrdersModal";
 
 interface PaymentModalProps {
   open: boolean;
@@ -34,7 +34,7 @@ type Step =
   | "questionnaire"
   | "instructions"
   | "verify"
-  | "success"
+  | "order_submitted"
   | "error"
   | "blocked";
 
@@ -56,6 +56,17 @@ const INITIAL_FORM: QuestionnaireForm = {
   templateUseCase: "",
 };
 
+function getTimeBasedMessage(): string {
+  const hour = new Date().getHours();
+  if (hour >= 0 && hour < 6) {
+    return "Your order is confirmed and your download option will be available after 6 AM";
+  }
+  if (hour >= 6 && hour < 15) {
+    return "Your order is confirmed and your download option will be available after 3 PM";
+  }
+  return "Your order is confirmed and your download option will be available in few hours";
+}
+
 export default function PaymentModal({
   open,
   onClose,
@@ -63,17 +74,21 @@ export default function PaymentModal({
 }: PaymentModalProps) {
   const [step, setStep] = useState<Step>("questionnaire");
   const [transactionRef, setTransactionRef] = useState("");
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotBlobId, setScreenshotBlobId] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [form, setForm] = useState<QuestionnaireForm>(INITIAL_FORM);
   const [formErrors, setFormErrors] = useState<
     Partial<Record<keyof QuestionnaireForm, string>>
   >({});
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState("");
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
 
-  const recordPayment = useRecordPayment();
-  const getFileId = useGetTemplateFileId();
+  const submitOrder = useSubmitOrder();
   const isEmailBlocked = useIsEmailBlocked();
-  const { downloadBlob } = useBlobStorage();
+  const { uploadBlob, uploadProgress, isUploading } = useBlobStorage();
 
   const price = Number(template.price);
   const priceFormatted = `₹${price.toLocaleString("en-IN")}`;
@@ -83,9 +98,12 @@ export default function PaymentModal({
   const handleReset = () => {
     setStep("questionnaire");
     setTransactionRef("");
+    setScreenshotFile(null);
+    setScreenshotBlobId("");
     setErrorMsg("");
     setForm(INITIAL_FORM);
     setFormErrors({});
+    setConfirmationMessage("");
   };
 
   const handleClose = () => {
@@ -138,46 +156,64 @@ export default function PaymentModal({
     setTimeout(() => setStep("verify"), 1500);
   };
 
-  const handleConfirmPayment = async () => {
+  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setScreenshotFile(file);
+    setScreenshotBlobId("");
+  };
+
+  const handleUploadScreenshot = async () => {
+    if (!screenshotFile) {
+      toast.error("Please select a screenshot file.");
+      return;
+    }
+    try {
+      const blobId = await uploadBlob(screenshotFile);
+      setScreenshotBlobId(blobId);
+      toast.success("Screenshot uploaded successfully.");
+    } catch (_err) {
+      toast.error("Failed to upload screenshot. Please try again.");
+    }
+  };
+
+  const handleSubmitOrder = async () => {
     if (!transactionRef.trim()) {
       toast.error("Please enter your transaction reference.");
       return;
     }
+    if (!screenshotBlobId) {
+      toast.error("Please upload your payment screenshot first.");
+      return;
+    }
+    setIsSubmitting(true);
     try {
-      await recordPayment.mutateAsync({
+      await submitOrder.mutateAsync({
         templateId: template.id,
         transactionRef: transactionRef.trim(),
+        screenshotBlobId,
         buyerName: form.fullNameAddress,
         buyerEmail: form.email,
+        buyerMobile: form.mobileNumber,
         buyerAddress: form.fullNameAddress,
         businessDetails: form.businessDetails,
-        accountRecoveryConfirm: form.accountRecovery === "yes",
+        accountRecovery: form.accountRecovery === "yes",
         templateUseCase: form.templateUseCase,
       });
-      const blobId = await getFileId.mutateAsync({
-        templateId: template.id,
-        transactionRef: transactionRef.trim(),
-      });
-      if (blobId) {
-        await downloadBlob(blobId, `${template.name}.html`);
-        setStep("success");
-      } else {
-        setErrorMsg(
-          "Payment not verified. Please ensure you entered the correct transaction reference.",
-        );
-        setStep("error");
-      }
+      setConfirmationMessage(getTimeBasedMessage());
+      setStep("order_submitted");
     } catch (_err) {
-      setErrorMsg("An error occurred. Please try again.");
+      setErrorMsg(
+        "An error occurred while submitting your order. Please try again.",
+      );
       setStep("error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const isLoading = recordPayment.isPending || getFileId.isPending;
-
   const getTitle = () => {
-    if (step === "success") return "Download Ready! 🎉";
-    if (step === "error") return "Payment Verification Failed";
+    if (step === "order_submitted") return "Order Confirmed! ✅";
+    if (step === "error") return "Submission Failed";
     if (step === "blocked") return "Access Restricted";
     if (step === "questionnaire") return "Purchase Information";
     return `Purchase: ${template.name}`;
@@ -197,6 +233,7 @@ export default function PaymentModal({
           <DialogTitle className="text-lg font-bold">{getTitle()}</DialogTitle>
         </DialogHeader>
 
+        {/* ── Questionnaire ───────────────────────────────────────────── */}
         {step === "questionnaire" && (
           <div className="space-y-5">
             <p className="text-muted-foreground text-sm">
@@ -220,10 +257,7 @@ export default function PaymentModal({
                 data-ocid="payment.full_name_address.input"
               />
               {formErrors.fullNameAddress && (
-                <p
-                  className="text-xs text-destructive"
-                  data-ocid="payment.full_name_address.error_state"
-                >
+                <p className="text-xs text-destructive">
                   {formErrors.fullNameAddress}
                 </p>
               )}
@@ -243,28 +277,23 @@ export default function PaymentModal({
                 data-ocid="payment.email.input"
               />
               {formErrors.email && (
-                <p
-                  className="text-xs text-destructive"
-                  data-ocid="payment.email.error_state"
-                >
-                  {formErrors.email}
-                </p>
+                <p className="text-xs text-destructive">{formErrors.email}</p>
               )}
               <Input
                 type="tel"
                 placeholder="Mobile number (e.g. +91 98765 43210)"
                 value={form.mobileNumber}
                 onChange={(e) =>
-                  setForm((prev) => ({ ...prev, mobileNumber: e.target.value }))
+                  setForm((prev) => ({
+                    ...prev,
+                    mobileNumber: e.target.value,
+                  }))
                 }
                 className="bg-white/5 border-white/10"
                 data-ocid="payment.mobile.input"
               />
               {formErrors.mobileNumber && (
-                <p
-                  className="text-xs text-destructive"
-                  data-ocid="payment.mobile.error_state"
-                >
+                <p className="text-xs text-destructive">
                   {formErrors.mobileNumber}
                 </p>
               )}
@@ -287,10 +316,7 @@ export default function PaymentModal({
                 data-ocid="payment.business_details.input"
               />
               {formErrors.businessDetails && (
-                <p
-                  className="text-xs text-destructive"
-                  data-ocid="payment.business_details.error_state"
-                >
+                <p className="text-xs text-destructive">
                   {formErrors.businessDetails}
                 </p>
               )}
@@ -331,10 +357,7 @@ export default function PaymentModal({
                 </label>
               </div>
               {formErrors.accountRecovery && (
-                <p
-                  className="text-xs text-destructive"
-                  data-ocid="payment.account_recovery.error_state"
-                >
+                <p className="text-xs text-destructive">
                   {formErrors.accountRecovery}
                 </p>
               )}
@@ -357,7 +380,10 @@ export default function PaymentModal({
                         value={opt}
                         checked={form.templateUseCase === opt}
                         onChange={() =>
-                          setForm((prev) => ({ ...prev, templateUseCase: opt }))
+                          setForm((prev) => ({
+                            ...prev,
+                            templateUseCase: opt,
+                          }))
                         }
                         className="accent-purple-500"
                         data-ocid={`payment.use_case_${opt.toLowerCase().replace(" ", "_")}.radio`}
@@ -368,10 +394,7 @@ export default function PaymentModal({
                 )}
               </div>
               {formErrors.templateUseCase && (
-                <p
-                  className="text-xs text-destructive"
-                  data-ocid="payment.use_case.error_state"
-                >
+                <p className="text-xs text-destructive">
                   {formErrors.templateUseCase}
                 </p>
               )}
@@ -400,6 +423,7 @@ export default function PaymentModal({
           </div>
         )}
 
+        {/* ── Blocked ─────────────────────────────────────────────────── */}
         {step === "blocked" && (
           <div
             className="space-y-4 text-center"
@@ -424,6 +448,7 @@ export default function PaymentModal({
           </div>
         )}
 
+        {/* ── Instructions ────────────────────────────────────────────── */}
         {step === "instructions" && (
           <div className="space-y-5">
             <div className="glass-card rounded-xl p-4 text-center">
@@ -465,6 +490,7 @@ export default function PaymentModal({
           </div>
         )}
 
+        {/* ── Verify ──────────────────────────────────────────────────── */}
         {step === "verify" && (
           <div className="space-y-5">
             <div className="glass-card rounded-xl p-4 text-center">
@@ -473,6 +499,8 @@ export default function PaymentModal({
                 {priceFormatted}
               </p>
             </div>
+
+            {/* Transaction ID */}
             <div className="space-y-2">
               <Label htmlFor="txn-ref" className="text-sm font-medium">
                 UPI Transaction ID / Reference Number
@@ -489,6 +517,62 @@ export default function PaymentModal({
                 Find this in your UPI app under recent transactions.
               </p>
             </div>
+
+            {/* Screenshot upload */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Upload Payment Screenshot (required)
+              </Label>
+              <div className="flex gap-2 items-center">
+                <Input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleScreenshotChange}
+                  className="bg-white/5 border-white/10 flex-1"
+                  data-ocid="payment.screenshot.upload_button"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/10 shrink-0"
+                  onClick={handleUploadScreenshot}
+                  disabled={!screenshotFile || isUploading}
+                  data-ocid="payment.screenshot_upload.button"
+                >
+                  {isUploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+              {isUploading && (
+                <div
+                  className="space-y-1"
+                  data-ocid="payment.screenshot.loading_state"
+                >
+                  <Progress value={uploadProgress} className="h-1.5" />
+                  <p className="text-xs text-muted-foreground">
+                    Uploading... {uploadProgress}%
+                  </p>
+                </div>
+              )}
+              {screenshotBlobId && (
+                <p
+                  className="text-xs"
+                  style={{ color: "#2FF6FF" }}
+                  data-ocid="payment.screenshot.success_state"
+                >
+                  ✓ Screenshot uploaded successfully
+                </p>
+              )}
+              {!screenshotBlobId && screenshotFile && !isUploading && (
+                <p className="text-xs text-yellow-400">
+                  ⚠ Click the upload button to upload your screenshot
+                </p>
+              )}
+            </div>
+
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -500,30 +584,46 @@ export default function PaymentModal({
               </Button>
               <Button
                 className="flex-1 btn-gradient text-white border-0 font-semibold"
-                onClick={handleConfirmPayment}
-                disabled={isLoading || !transactionRef.trim()}
+                onClick={handleSubmitOrder}
+                disabled={
+                  isSubmitting || !transactionRef.trim() || !screenshotBlobId
+                }
                 data-ocid="payment.confirm.button"
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : null}
-                Confirm &amp; Download
+                {isSubmitting ? "Submitting..." : "Confirm Order"}
               </Button>
             </div>
           </div>
         )}
 
-        {step === "success" && (
+        {/* ── Order Submitted ──────────────────────────────────────────── */}
+        {step === "order_submitted" && (
           <div
-            className="space-y-4 text-center"
+            className="space-y-5 text-center"
             data-ocid="payment.success_state"
           >
             <div className="flex justify-center">
-              <CheckCircle className="w-16 h-16" style={{ color: "#28D7FF" }} />
+              <CheckCircle className="w-16 h-16" style={{ color: "#2FF6FF" }} />
             </div>
-            <p className="text-muted-foreground">
-              Your template download has started. Thank you for your purchase!
+            <p
+              className="font-bold text-base leading-snug"
+              style={{ color: "#2FF6FF" }}
+            >
+              {confirmationMessage}
             </p>
+            <div className="glass-card rounded-xl p-4 text-left space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Your transaction ID:{" "}
+                <span className="font-mono text-white">{transactionRef}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Once your payment is verified by our team, your download will be
+                unlocked.
+              </p>
+            </div>
             <Button
               className="w-full btn-gradient text-white border-0"
               onClick={handleClose}
@@ -531,9 +631,26 @@ export default function PaymentModal({
             >
               Close
             </Button>
+            <Button
+              variant="outline"
+              className="w-full border-white/15 hover:border-white/30"
+              onClick={() => setShowOrdersModal(true)}
+              data-ocid="payment.check_download.button"
+            >
+              <Download className="w-4 h-4 mr-2" style={{ color: "#2FF6FF" }} />
+              Check Download Status
+            </Button>
           </div>
         )}
 
+        {/* ── MyOrdersModal ───────────────────────────────────────────── */}
+        <MyOrdersModal
+          open={showOrdersModal}
+          onClose={() => setShowOrdersModal(false)}
+          prefillEmail={form.email}
+        />
+
+        {/* ── Error ───────────────────────────────────────────────────── */}
         {step === "error" && (
           <div
             className="space-y-4 text-center"

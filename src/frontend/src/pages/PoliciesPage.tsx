@@ -31,17 +31,10 @@ export default function PoliciesPage() {
   const { data: policyDocuments, isLoading } = useGetPolicyDocuments();
   const { getBlobUrl } = useBlobStorage();
 
-  const handleView = async (blobId: string, fileName: string) => {
+  const handleView = async (blobId: string) => {
     try {
       const url = await getBlobUrl(blobId);
-      const link = document.createElement("a");
-      link.href = url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      window.open(url, "_blank", "noopener,noreferrer");
     } catch (_err) {
       // fallback: do nothing
     }
@@ -137,11 +130,11 @@ export default function PoliciesPage() {
                         variant="outline"
                         size="sm"
                         className="border-white/10 gap-2"
-                        onClick={() => handleView(doc.blobId, doc.fileName)}
+                        onClick={() => handleView(doc.blobId)}
                         data-ocid={`policies.${policy.key}.button`}
                       >
                         <FileText className="w-4 h-4" />
-                        View / Download
+                        View
                       </Button>
                     </div>
                   )}

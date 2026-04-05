@@ -52,6 +52,34 @@ export interface Template {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export type OrderStatus = { 'pending' : null } |
+  { 'approved' : null } |
+  { 'rejected' : null };
+export interface Order {
+  'id' : bigint,
+  'templateId' : bigint,
+  'transactionRef' : string,
+  'screenshotBlobId' : string,
+  'buyerName' : string,
+  'buyerEmail' : string,
+  'buyerMobile' : string,
+  'buyerAddress' : string,
+  'businessDetails' : string,
+  'accountRecovery' : boolean,
+  'templateUseCase' : string,
+  'status' : OrderStatus,
+  'createdAt' : bigint,
+}
+export interface CountryCount {
+  'country' : string,
+  'count' : bigint,
+}
+export interface PaymentSummary {
+  'totalOrders' : bigint,
+  'pendingOrders' : bigint,
+  'approvedOrders' : bigint,
+  'rejectedOrders' : bigint,
+}
 export interface _CaffeineStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
@@ -114,6 +142,19 @@ export interface _SERVICE {
     [bigint, string, string, bigint, boolean, Array<string>],
     boolean
   >,
+  'submitOrder' : ActorMethod<
+    [bigint, string, string, string, string, string, string, string, boolean, string],
+    bigint
+  >,
+  'getOrders' : ActorMethod<[], Array<Order>>,
+  'approveOrder' : ActorMethod<[bigint], boolean>,
+  'rejectOrder' : ActorMethod<[bigint], boolean>,
+  'getOrdersByEmail' : ActorMethod<[string], Array<Order>>,
+  'getApprovedOrderFileId' : ActorMethod<[bigint], [] | [string]>,
+  'recordPageVisit' : ActorMethod<[string], undefined>,
+  'getPageVisitCount' : ActorMethod<[], bigint>,
+  'getVisitorCountries' : ActorMethod<[], Array<CountryCount>>,
+  'getPaymentSummary' : ActorMethod<[], PaymentSummary>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

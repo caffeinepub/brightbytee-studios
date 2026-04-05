@@ -11,6 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Check, Eye, Loader2, ShoppingCart, Star, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import preview1 from "../../public/assets/generated/template-preview-1.dim_800x500.jpg";
+import preview2 from "../../public/assets/generated/template-preview-2.dim_800x500.jpg";
+import preview3 from "../../public/assets/generated/template-preview-3.dim_800x500.jpg";
+import preview4 from "../../public/assets/generated/template-preview-4.dim_800x500.jpg";
 import type { Template } from "../backend";
 import { useBlobStorage } from "../hooks/useBlobStorage";
 import { useAddReview, useReviews } from "../hooks/useQueries";
@@ -21,12 +25,7 @@ interface TemplateCardProps {
   index: number;
 }
 
-const STATIC_PREVIEWS = [
-  "/assets/generated/template-preview-1.dim_800x500.jpg",
-  "/assets/generated/template-preview-2.dim_800x500.jpg",
-  "/assets/generated/template-preview-3.dim_800x500.jpg",
-  "/assets/generated/template-preview-4.dim_800x500.jpg",
-];
+const STATIC_PREVIEWS = [preview1, preview2, preview3, preview4];
 
 function StarRatingDisplay({ rating }: { rating: number }) {
   return (
@@ -49,10 +48,7 @@ function StarRatingDisplay({ rating }: { rating: number }) {
 function StarRatingSelector({
   value,
   onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
+}: { value: number; onChange: (v: number) => void }) {
   const [hovered, setHovered] = useState(0);
   return (
     <div className="flex gap-1" data-ocid="review.rating.select">
@@ -82,8 +78,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
   const [imageUrl, setImageUrl] = useState("");
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-
-  // Review form state
   const [reviewName, setReviewName] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
@@ -131,21 +125,11 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
         style={{ border: "1px solid rgba(255,255,255,0.10)" }}
       >
         <div className="relative h-48 overflow-hidden">
-          {displayImage ? (
-            <img
-              src={displayImage}
-              alt={template.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div
-              className="w-full h-full"
-              style={{
-                background:
-                  "linear-gradient(135deg, oklch(0.18 0.05 290), oklch(0.18 0.05 210))",
-              }}
-            />
-          )}
+          <img
+            src={displayImage}
+            alt={template.name}
+            className="w-full h-full object-cover"
+          />
           <div
             className="absolute inset-0"
             style={{
@@ -154,7 +138,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
             }}
           />
         </div>
-
         <div className="p-5 flex flex-col flex-1">
           <div className="flex items-start justify-between gap-2 mb-2">
             <h3 className="font-bold text-base leading-tight">
@@ -167,11 +150,9 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
               {`\u20B9${Number(template.price).toLocaleString("en-IN")}`}
             </Badge>
           </div>
-
           <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
             {template.description}
           </p>
-
           {template.features.length > 0 && (
             <ul className="mb-4 space-y-1">
               {template.features.slice(0, 4).map((f) => (
@@ -188,7 +169,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
               ))}
             </ul>
           )}
-
           <div className="mt-auto flex gap-2">
             <Button
               className="flex-1 btn-gradient text-white border-0 font-semibold"
@@ -212,7 +192,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
         </div>
       </div>
 
-      {/* Details Modal */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent
           className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
@@ -238,8 +217,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
               </Badge>
             </div>
           </DialogHeader>
-
-          {/* Preview image */}
           <div className="rounded-xl overflow-hidden h-48 mt-1">
             <img
               src={displayImage}
@@ -247,8 +224,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
               className="w-full h-full object-cover"
             />
           </div>
-
-          {/* Description */}
           <div className="space-y-4">
             <div>
               <p
@@ -261,8 +236,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
                 {template.description || "No description provided."}
               </p>
             </div>
-
-            {/* Features */}
             {template.features.length > 0 && (
               <div>
                 <p
@@ -284,8 +257,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
                 </ul>
               </div>
             )}
-
-            {/* Reviews Section */}
             <div>
               <p
                 className="text-xs font-semibold uppercase tracking-widest mb-3"
@@ -293,7 +264,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
               >
                 Customer Reviews
               </p>
-
               {reviewsLoading ? (
                 <div
                   className="flex items-center gap-2 text-sm py-3"
@@ -357,8 +327,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
                   ))}
                 </div>
               )}
-
-              {/* Leave a review form */}
               <div
                 className="rounded-xl p-4 space-y-3 mt-2"
                 style={{
@@ -373,7 +341,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
                 >
                   Leave a Review
                 </p>
-
                 <input
                   type="text"
                   placeholder="Your name"
@@ -386,12 +353,10 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
                   }}
                   data-ocid={`template.review.input.${index + 1}`}
                 />
-
                 <StarRatingSelector
                   value={reviewRating}
                   onChange={setReviewRating}
                 />
-
                 <Textarea
                   placeholder="Share your experience with this template..."
                   value={reviewComment}
@@ -404,7 +369,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
                   }}
                   data-ocid={`template.review.textarea.${index + 1}`}
                 />
-
                 <Button
                   className="w-full btn-gradient text-white border-0 font-semibold h-9 text-sm"
                   onClick={handleSubmitReview}
@@ -431,8 +395,6 @@ export default function TemplateCard({ template, index }: TemplateCardProps) {
               </div>
             </div>
           </div>
-
-          {/* Actions */}
           <div className="flex gap-3 pt-2">
             <Button
               className="flex-1 btn-gradient text-white border-0 font-bold h-11"

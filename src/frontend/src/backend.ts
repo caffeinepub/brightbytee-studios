@@ -139,6 +139,32 @@ export interface Review {
     comment: string;
     rating: bigint;
 }
+export type OrderStatus = { 'pending': null } | { 'approved': null } | { 'rejected': null };
+export interface Order {
+    id: bigint;
+    templateId: bigint;
+    transactionRef: string;
+    screenshotBlobId: string;
+    buyerName: string;
+    buyerEmail: string;
+    buyerMobile: string;
+    buyerAddress: string;
+    businessDetails: string;
+    accountRecovery: boolean;
+    templateUseCase: string;
+    status: OrderStatus;
+    createdAt: bigint;
+}
+export interface CountryCount {
+    country: string;
+    count: bigint;
+}
+export interface PaymentSummary {
+    totalOrders: bigint;
+    pendingOrders: bigint;
+    approvedOrders: bigint;
+    rejectedOrders: bigint;
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -177,6 +203,16 @@ export interface backendInterface {
     unblockBuyer(id: bigint): Promise<boolean>;
     updateAnnouncement(announcement: Announcement): Promise<boolean>;
     updateTemplate(id: bigint, name: string, description: string, price: bigint, isFree: boolean, features: Array<string>): Promise<boolean>;
+    submitOrder(templateId: bigint, transactionRef: string, screenshotBlobId: string, buyerName: string, buyerEmail: string, buyerMobile: string, buyerAddress: string, businessDetails: string, accountRecovery: boolean, templateUseCase: string): Promise<bigint>;
+    getOrders(): Promise<Array<Order>>;
+    approveOrder(orderId: bigint): Promise<boolean>;
+    rejectOrder(orderId: bigint): Promise<boolean>;
+    getOrdersByEmail(email: string): Promise<Array<Order>>;
+    getApprovedOrderFileId(orderId: bigint): Promise<string | null>;
+    recordPageVisit(country: string): Promise<void>;
+    getPageVisitCount(): Promise<bigint>;
+    getVisitorCountries(): Promise<Array<CountryCount>>;
+    getPaymentSummary(): Promise<PaymentSummary>;
 }
 import type { UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -626,6 +662,146 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateTemplate(arg0, arg1, arg2, arg3, arg4, arg5);
+            return result;
+        }
+    }
+    async submitOrder(arg0: bigint, arg1: string, arg2: string, arg3: string, arg4: string, arg5: string, arg6: string, arg7: string, arg8: boolean, arg9: string): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitOrder(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitOrder(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+            return result;
+        }
+    }
+    async getOrders(): Promise<Array<Order>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getOrders();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getOrders();
+            return result;
+        }
+    }
+    async approveOrder(arg0: bigint): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.approveOrder(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.approveOrder(arg0);
+            return result;
+        }
+    }
+    async rejectOrder(arg0: bigint): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.rejectOrder(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.rejectOrder(arg0);
+            return result;
+        }
+    }
+    async getOrdersByEmail(arg0: string): Promise<Array<Order>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getOrdersByEmail(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getOrdersByEmail(arg0);
+            return result;
+        }
+    }
+    async getApprovedOrderFileId(arg0: bigint): Promise<string | null> {
+        if (this.processError) {
+            try {
+                const value = await this.actor.getApprovedOrderFileId(arg0);
+                return value.length === 0 ? null : value[0];
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const value = await this.actor.getApprovedOrderFileId(arg0);
+            return value.length === 0 ? null : value[0];
+        }
+    }
+    async recordPageVisit(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.recordPageVisit(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.recordPageVisit(arg0);
+            return result;
+        }
+    }
+    async getPageVisitCount(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPageVisitCount();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPageVisitCount();
+            return result;
+        }
+    }
+    async getVisitorCountries(): Promise<Array<CountryCount>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getVisitorCountries();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getVisitorCountries();
+            return result;
+        }
+    }
+    async getPaymentSummary(): Promise<PaymentSummary> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPaymentSummary();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPaymentSummary();
             return result;
         }
     }
